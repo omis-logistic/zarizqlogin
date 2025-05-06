@@ -1,8 +1,8 @@
 //scripts/app.js
 // ================= CONFIGURATION =================
 const CONFIG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbw7dAUnpth5644UElmiwuaT3ayKuTkGKBIYRxveDfQsC3c88TOJoFHCu6V_TwzFCT7z/exec',
-  PROXY_URL: 'https://script.google.com/macros/s/AKfycbxIAX4irDMGRGzrQcnuQIP3-gAdMJ_tdAP9UDHr14s4deFBLu_-RjBRjZA8FgX3mrqtEQ/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxxIqQspFwEVC_cfYue7iweOzg0yK6rLAu98CPIn5Zl4wQ5HtDSCXxO0esM8Bm2gamV/exec',
+  PROXY_URL: 'https://script.google.com/macros/s/AKfycbwEYXjoaSonwqrxsDSt8A1oe-gCLwxgktWin9aZlaHCnPHMGV1aaBZRqID3ymOCx9_p/exec',
   SESSION_TIMEOUT: 3600,
   MAX_FILE_SIZE: 5 * 1024 * 1024,
   ALLOWED_FILE_TYPES: ['image/jpeg', 'image/png', 'application/pdf'],
@@ -221,46 +221,34 @@ async function handleParcelSubmission(e) {
 
   try {
     const formData = new FormData(form);
-    const itemCategory = formData.get('itemCategory');
     const files = Array.from(formData.getAll('files'));
     
-    // Mandatory file check for starred categories
-    const starredCategories = [
-      '*Books', '*Cosmetics/Skincare/Bodycare',
-      '*Food Beverage/Drinks', '*Gadgets',
-      '*Oil Ointment', '*Supplement', '*Others'
-    ];
-    
-    if (starredCategories.includes(itemCategory)) {
-      if (files.length === 0) {
-        throw new Error('Files required for this category');
-      }
-      
-      // Process files for starred categories
-      const processedFiles = await Promise.all(
-        files.map(async file => ({
-          name: file.name,
-          type: file.type,
-          data: await readFileAsBase64(file)
-        }))
-      );
-      
-      var filesPayload = processedFiles;
-    } else {
-      var filesPayload = [];
+    // Process files for all submissions
+    if (files.length === 0) {
+      throw new Error('Files required for submission');
     }
+    
+    const processedFiles = await Promise.all(
+      files.map(async file => ({
+        name: file.name,
+        type: file.type,
+        data: await readFileAsBase64(file)
+      }))
+    );
 
-    const payload = {
-      trackingNumber: formData.get('trackingNumber').trim().toUpperCase(),
-      nameOnParcel: formData.get('nameOnParcel').trim(),
-      phone: document.getElementById('phone').value,
-      itemDescription: formData.get('itemDescription').trim(),
-      quantity: formData.get('quantity'),
-      price: formData.get('price'),
-      collectionPoint: formData.get('collectionPoint'),
-      itemCategory: itemCategory,
-      files: filesPayload
-    };
+      const payload = {
+        trackingNumber: formData.get('trackingNumber').trim().toUpperCase(),
+        nameOnParcel: formData.get('nameOnParcel').trim(),
+        phone: document.getElementById('phone').value,
+        itemDescription: formData.get('itemDescription').trim(),
+        quantity: formData.get('quantity'),
+        price: formData.get('price'),
+        shippingPrice: formData.get('shippingPrice'), // New field
+        collectionPoint: formData.get('collectionPoint'),
+        itemCategory: formData.get('itemCategory'),
+        files: processedFiles,
+        remark: formData.get('remarks')?.trim() || ''
+      };
 
     await fetch(CONFIG.PROXY_URL, {
       method: 'POST',
@@ -350,6 +338,13 @@ function validatePrice(inputElement) {
   return isValid;
 }
 
+function validateShippingPrice(inputElement) {
+  const value = parseFloat(inputElement?.value || 0);
+  const isValid = !isNaN(value) && value >= 0 && value < 100000;
+  showError(isValid ? '' : 'Valid shipping price (0-100000) required', 'shippingPriceError');
+  return isValid;
+}
+
 function validateCollectionPoint(selectElement) {
   const value = selectElement?.value || '';
   const isValid = value !== '';
@@ -366,26 +361,10 @@ function validateCategory(selectElement) {
 }
 
 function validateInvoiceFiles() {
-  const mandatoryCategories = [
-    '* Books', '* Cosmetics/Skincare/Bodycare',
-    '* Food Beverage/Drinks', '* Gadgets',
-    '* Oil Ointment', '* Supplement', '*Others'
-  ];
-  
-  const category = document.getElementById('itemCategory')?.value || '';
   const files = document.getElementById('invoiceFiles')?.files || [];
-  let isValid = true;
-  let errorMessage = '';
-
-  if(files.length > 3) {
-    errorMessage = 'Maximum 3 files allowed';
-    isValid = false;
-  }
-  else if(mandatoryCategories.includes(category)) {
-    isValid = files.length > 0;
-    errorMessage = isValid ? '' : 'At least 1 invoice required';
-  }
-
+  const isValid = files.length >= 1 && files.length <= 3;
+  const errorMessage = isValid ? '' : 'Requires 1-3 documents';
+  
   showError(errorMessage, 'invoiceFilesError');
   return isValid;
 }
@@ -437,20 +416,11 @@ function validateFiles(category, files) {
 function handleFileSelection(input) {
   try {
     const files = Array.from(input.files);
-    const category = document.getElementById('itemCategory').value;
     
-    // Validate against starred categories
-    const starredCategories = [
-      '*Books', '*Cosmetics/Skincare/Bodycare', '*Food Beverage/Drinks',
-      '*Gadgets', '*Oil Ointment', '*Supplement', '*Others'
-    ];
-    
-    if (starredCategories.includes(category)) {
-      if (files.length < 1) throw new Error('At least 1 file required');
-      if (files.length > 3) throw new Error('Max 3 files allowed');
-    }
+    // Validate for all categories
+    if (files.length < 1) throw new Error('At least 1 file required');
+    if (files.length > 3) throw new Error('Max 3 files allowed');
 
-    // Validate individual files
     files.forEach(file => {
       if (file.size > CONFIG.MAX_FILE_SIZE) {
         throw new Error(`${file.name} exceeds 5MB`);
@@ -468,12 +438,19 @@ function handleFileSelection(input) {
 // ================= SUBMISSION HANDLER =================
 async function submitDeclaration(payload) {
   try {
+    // Ensure shippingPrice is included in the payload
+    const fullPayload = {
+      ...payload,
+      shippingPrice: payload.shippingPrice || 0,
+      remark: payload.remark || ''  // Add remark with empty string fallback
+    };
+
     const response = await fetch(CONFIG.PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
       },
-      body: `payload=${encodeURIComponent(JSON.stringify(payload))}`,
+      body: `payload=${encodeURIComponent(JSON.stringify(fullPayload))}`,
       mode: 'cors',
       redirect: 'follow',
       referrerPolicy: 'no-referrer'
@@ -540,8 +517,8 @@ function checkAllFields() {
     validateDescription(document.getElementById('itemDescription')),
     validateQuantity(document.getElementById('quantity')),
     validatePrice(document.getElementById('price')),
+    validateShippingPrice(document.getElementById('shippingPrice')),
     validateCollectionPoint(document.getElementById('collectionPoint')),
-    validateCategory(document.getElementById('itemCategory')),
     validateInvoiceFiles()
   ];
 
@@ -585,12 +562,18 @@ function initValidationListeners() {
           case 'price':
             validatePrice(input);
             break;
+          case 'shippingPrice':
+            validateShippingPrice(input);
+            break;
           case 'collectionPoint':
             validateCollectionPoint(input);
             break;
           case 'itemCategory':
             validateCategory(input);
             break;
+          case 'remarks':
+          // No validation needed for optional field
+          break;
         }
         updateSubmitButtonState();
       });
@@ -876,25 +859,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // New functions for category requirements =================
 function checkCategoryRequirements() {
-  const category = document.getElementById('itemCategory')?.value || '';
   const fileInput = document.getElementById('fileUpload');
   const fileHelp = document.getElementById('fileHelp');
   
-  const starredCategories = [
-    '*Books', '*Cosmetics/Skincare/Bodycare',
-    '*Food Beverage/Drinks', '*Gadgets',
-    '*Oil Ointment', '*Supplement', '*Others'
-  ];
-
-  if (starredCategories.includes(category)) {
-    fileInput.required = true;
-    fileHelp.innerHTML = 'Required: JPEG, PNG, PDF (Max 5MB each)';
-    fileHelp.style.color = '#ff4444';
-  } else {
-    fileInput.required = false;
-    fileHelp.innerHTML = 'Optional: JPEG, PNG, PDF (Max 5MB each)';
-    fileHelp.style.color = '#888';
-  }
+  // Always show required for files
+  fileInput.required = true;
+  fileHelp.innerHTML = 'Required: JPEG, PNG, PDF (Max 5MB each)';
+  fileHelp.style.color = '#ff4444';
 }
 
 function setupCategoryChangeListener() {
