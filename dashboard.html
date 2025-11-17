@@ -292,6 +292,11 @@
   if (!userData) return safeRedirect('login.html');
   if (userData.tempPassword) return safeRedirect('password-reset.html');
 
+  // Check for pending tracking redirect first
+  if (processPendingTracking()) {
+    return; // Redirect handled, skip welcome modal
+  }
+
   // New URL parameter check
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.has('fresh')) {
