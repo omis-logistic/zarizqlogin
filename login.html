@@ -149,7 +149,7 @@
   <script src="scripts/app.js"></script>
   <script>
     // Integrated with app.js functions
-    function handleLogin() {
+function handleLogin() {
   const btn = document.querySelector('.login-container button');
   const originalText = btn.innerHTML;
   btn.disabled = true;
@@ -173,6 +173,12 @@ window[callbackName] = (response) => {
   if (response.success) {
       sessionStorage.setItem('userData', JSON.stringify(response));
       localStorage.setItem('lastActivity', Date.now());
+      
+      // Check for pending tracking redirect
+      if (processPendingTracking()) {
+          return; // Redirect handled
+      }
+      
       safeRedirect(response.tempPassword ? 'password-reset.html' : 'dashboard.html?fresh=1');
   } else {
     const errorContainer = document.getElementById('loginError');
@@ -205,6 +211,18 @@ window[callbackName] = (response) => {
     function showForgotPassword() {
       safeRedirect('forgot-password.html');
     }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tracking = urlParams.get('tracking');
+    
+    if (tracking) {
+        // Store tracking number for post-login redirect
+        sessionStorage.setItem('pendingTracking', tracking);
+        sessionStorage.setItem('pendingRedirect', 'parcel-declaration.html');
+    }
+});
+    
   </script>
 </body>
 </html>
