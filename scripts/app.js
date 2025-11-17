@@ -804,6 +804,38 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString('en-MY', options);
 }
 
+// ================= TRACKING NUMBER HANDLER =================
+function handleTrackingNumberFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tracking = urlParams.get('tracking');
+    
+    if (tracking) {
+        // Store for post-login redirect
+        sessionStorage.setItem('pendingTracking', tracking);
+        sessionStorage.setItem('pendingRedirect', 'parcel-declaration.html');
+    }
+    
+    return tracking;
+}
+
+function processPendingTracking() {
+    const pendingTracking = sessionStorage.getItem('pendingTracking');
+    const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+    
+    if (pendingTracking && pendingRedirect) {
+        sessionStorage.removeItem('pendingTracking');
+        sessionStorage.removeItem('pendingRedirect');
+        
+        if (pendingRedirect === 'parcel-declaration.html') {
+            // Store tracking for parcel declaration page
+            sessionStorage.setItem('prefillTracking', pendingTracking);
+            safeRedirect('parcel-declaration.html');
+            return true;
+        }
+    }
+    return false;
+}
+
 // ================= INITIALIZATION =================
 document.addEventListener('DOMContentLoaded', () => {
   detectViewMode();
