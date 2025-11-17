@@ -117,5 +117,23 @@
   </div>
 
   <script src="scripts/app.js"></script>
+  
+  <script>
+// Prefill tracking number if available
+document.addEventListener('DOMContentLoaded', function() {
+    const prefillTracking = sessionStorage.getItem('prefillTracking');
+    
+    if (prefillTracking) {
+        const trackingInput = document.getElementById('trackingNumber');
+        if (trackingInput) {
+            trackingInput.value = prefillTracking;
+            trackingInput.readOnly = true;
+            trackingInput.style.backgroundColor = '#2a2a2a';
+            trackingInput.style.color = '#888';
+        }
+        sessionStorage.removeItem('prefillTracking');
+    }
+});
+</script>
 </body>
 </html>
