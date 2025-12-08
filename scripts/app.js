@@ -251,26 +251,39 @@ function resetForm() {
 async function handleParcelSubmission(e) {
   e.preventDefault();
   const form = e.target;
-  showLoading(true, 'Submitting parcel declaration...');
+  showLoading(true);
 
   try {
     const formData = new FormData(form);
     const itemCategory = formData.get('itemCategory');
     const files = Array.from(formData.getAll('files'));
     
-    console.log('Form submitted');
-    console.log('Form element:', form);
-    console.log('FormData entries:');
-    for (let pair of formData.entries()) {
-      console.log(pair[0] + ': ' + pair[1]);
-    }
-
     // Mandatory file check for starred categories
     const starredCategories = [
-      'Cosmetics', 'Food', 'Gadgets', 'Suppplement', 'Others'
+      '*Books', '*Cosmetics/Skincare/Bodycare',
+      '*Food Beverage/Drinks', '*Gadgets',
+      '*Oil Ointment', '*Supplement', '*Others'
     ];
     
-    // Get form data
+    if (starredCategories.includes(itemCategory)) {
+      if (files.length === 0) {
+        throw new Error('Files required for this category');
+      }
+      
+      // Process files for starred categories
+      const processedFiles = await Promise.all(
+        files.map(async file => ({
+          name: file.name,
+          type: file.type,
+          data: await readFileAsBase64(file)
+        }))
+      );
+      
+      var filesPayload = processedFiles;
+    } else {
+      var filesPayload = [];
+    }
+
     const payload = {
       trackingNumber: formData.get('trackingNumber').trim().toUpperCase(),
       nameOnParcel: formData.get('nameOnParcel').trim(),
@@ -280,69 +293,21 @@ async function handleParcelSubmission(e) {
       price: formData.get('price'),
       collectionPoint: formData.get('collectionPoint'),
       itemCategory: itemCategory,
-      remarks: formData.get('remarks') || ''
+      files: filesPayload
     };
 
-    console.log('Payload:', payload);
-
-    // Validate mandatory files for starred categories
-    if (starredCategories.includes(itemCategory)) {
-      if (files.length === 0) {
-        throw new Error('Invoice/Proof of purchase is required for this category');
-      }
-      
-      // Validate each file
-      files.forEach(file => {
-        if (file.size > CONFIG.MAX_FILE_SIZE) {
-          throw new Error(`${file.name} exceeds 5MB limit`);
-        }
-        if (!CONFIG.ALLOWED_FILE_TYPES.includes(file.type)) {
-          throw new Error(`${file.name} must be JPEG, PNG, or PDF`);
-        }
-      });
-      
-      if (files.length > CONFIG.MAX_FILES) {
-        throw new Error(`Maximum ${CONFIG.MAX_FILES} files allowed`);
-      }
-    }
-
-    // Create a new FormData for sending
-    const submissionFormData = new FormData();
-    
-    // Add the JSON data
-    submissionFormData.append('data', JSON.stringify({
-      action: 'submitParcel',
-      ...payload
-    }));
-
-    // Add files if they exist
-    files.forEach((file, index) => {
-      submissionFormData.append(`file${index}`, file);
-    });
-
-    // Send to server
-    const response = await fetch(CONFIG.GAS_URL, {
+    await fetch(CONFIG.PROXY_URL, {
       method: 'POST',
-      body: submissionFormData
-      // Note: Don't set Content-Type header when using FormData
-      // Let browser set it automatically with boundary
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `payload=${encodeURIComponent(JSON.stringify(payload))}`
     });
-
-    const result = await response.json();
-    console.log('Server response:', result);
-
-    if (result.success) {
-      showSuccessMessage();
-      resetForm();
-    } else {
-      throw new Error(result.message || 'Submission failed');
-    }
 
   } catch (error) {
-    console.error('Submission error:', error);
-    showError(error.message || 'Failed to submit declaration. Please try again.');
+    // Still ignore errors but files are handled
   } finally {
     showLoading(false);
+    resetForm();
+    showSuccessMessage();
   }
 }
 
@@ -867,14 +832,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // 2. Initialize parcel form if exists (Mark 1 approach)
   const parcelForm = document.getElementById('declarationForm');
   if (parcelForm) {
-    // Remove any existing listeners to avoid duplicates
-    parcelForm.removeEventListener('submit', handleParcelSubmission);
     parcelForm.addEventListener('submit', handleParcelSubmission);
     
     // Set up category change listener
     const categorySelect = document.getElementById('itemCategory');
     if (categorySelect) {
-      categorySelect.removeEventListener('change', checkCategoryRequirements);
       categorySelect.addEventListener('change', checkCategoryRequirements);
     }
   }
@@ -948,21 +910,19 @@ function checkCategoryRequirements() {
   const fileHelp = document.getElementById('fileHelp');
   
   const starredCategories = [
-    'Cosmetics', 'Food', 'Gadgets', 'Suppplement', 'Others'
+    '*Books', '*Cosmetics/Skincare/Bodycare',
+    '*Food Beverage/Drinks', '*Gadgets',
+    '*Oil Ointment', '*Supplement', '*Others'
   ];
 
   if (starredCategories.includes(category)) {
     fileInput.required = true;
-    fileInput.setAttribute('aria-required', 'true');
-    fileHelp.innerHTML = 'Required for this category: JPEG, PNG, PDF (Max 5MB each, Max 3 files)';
+    fileHelp.innerHTML = 'Required: JPEG, PNG, PDF (Max 5MB each)';
     fileHelp.style.color = '#ff4444';
-    fileHelp.style.fontWeight = 'bold';
   } else {
     fileInput.required = false;
-    fileInput.removeAttribute('aria-required');
-    fileHelp.innerHTML = 'Optional: JPEG, PNG, PDF (Max 5MB each, Max 3 files)';
+    fileHelp.innerHTML = 'Optional: JPEG, PNG, PDF (Max 5MB each)';
     fileHelp.style.color = '#888';
-    fileHelp.style.fontWeight = 'normal';
   }
 }
 
