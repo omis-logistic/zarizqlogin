@@ -804,6 +804,35 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString('en-MY', options);
 }
 
+// ================= SESSION VALIDATION =================
+function validateAndRedirectWithTracking() {
+  const userData = checkSession();
+  const urlParams = new URLSearchParams(window.location.search);
+  const tracking = urlParams.get('tracking');
+  
+  if (userData && tracking) {
+    // User is logged in and has tracking parameter
+    sessionStorage.setItem('prefillTracking', tracking);
+    
+    // Clean the URL
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, '', cleanUrl);
+    
+    // Redirect to parcel declaration
+    safeRedirect('parcel-declaration.html');
+    return true;
+  }
+  
+  if (tracking && !userData) {
+    // User not logged in but has tracking - store for post-login
+    sessionStorage.setItem('pendingTracking', tracking);
+    sessionStorage.setItem('pendingRedirect', 'parcel-declaration.html');
+    return false;
+  }
+  
+  return null;
+}
+
 // ================= TRACKING NUMBER HANDLER =================
 function handleTrackingNumberFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
