@@ -118,19 +118,44 @@
   <script src="scripts/app.js"></script>
   
   <script>
-// Prefill tracking number if available
+// Enhanced prefill tracking number logic with loop prevention
 document.addEventListener('DOMContentLoaded', function() {
-    const prefillTracking = sessionStorage.getItem('prefillTracking');
+    console.log('Parcel declaration page loaded');
     
-    if (prefillTracking) {
+    // Check for prefill tracking from session storage
+    const prefillTracking = sessionStorage.getItem('prefillTracking');
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlTracking = urlParams.get('tracking');
+    
+    console.log('Prefill tracking from session:', prefillTracking);
+    console.log('Tracking from URL:', urlTracking);
+    
+    let trackingToUse = prefillTracking || urlTracking;
+    
+    if (trackingToUse) {
         const trackingInput = document.getElementById('trackingNumber');
         if (trackingInput) {
-            trackingInput.value = prefillTracking;
+            trackingInput.value = trackingToUse;
             trackingInput.readOnly = true;
             trackingInput.style.backgroundColor = '#2a2a2a';
             trackingInput.style.color = '#888';
+            trackingInput.title = "Tracking number from login link - cannot be modified";
+            
+            console.log('Tracking prefilled:', trackingToUse);
+            
+            // Clean up session storage after use
+            if (prefillTracking) {
+                setTimeout(() => {
+                    sessionStorage.removeItem('prefillTracking');
+                }, 1000);
+            }
         }
-        sessionStorage.removeItem('prefillTracking');
+    }
+    
+    // Clean URL if it has tracking parameter
+    if (urlTracking) {
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
     }
 });
 </script>
