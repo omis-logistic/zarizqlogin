@@ -1,7 +1,7 @@
 //scripts/app.js
 // ================= CONFIGURATION =================
 const CONFIG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbxsmDH7WfJK1wXvMxqIF6ib4EEff-CQgXXJ0jSx7bHdi3Us9pUkvM2DbIfHjWijGxGh/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxq8OoC20di-pIHff0-QYZ7ovBtr42rad8oWjzsjkZfN9wv-Iwgwwl9fEAlgD1GbFwh/exec',
   PROXY_URL: 'https://script.google.com/macros/s/AKfycbzOgXif9ro_Hc-h8cCaUYAkuJo_-cXsb5MqAULkrfvP2rFzo2xtznM78fId5Bh5mHRa/exec',
   SESSION_TIMEOUT: 3600,
   MAX_FILE_SIZE: 5 * 1024 * 1024,
@@ -766,7 +766,8 @@ function safeRedirect(path) {
     const allowedPaths = [
       'login.html', 'register.html', 'dashboard.html',
       'forgot-password.html', 'password-reset.html',
-      'my-info.html', 'parcel-declaration.html', 'track-parcel.html'
+      'my-info.html', 'parcel-declaration.html', 'track-parcel.html',
+      'billing-info.html', 'invoice.html'
     ];
     
     if (!allowedPaths.includes(basePath)) {
