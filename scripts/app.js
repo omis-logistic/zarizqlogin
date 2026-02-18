@@ -489,8 +489,9 @@ async function tryFallbackSubmission(payload) {
       itemDescription: payload.data.itemDescription,
       quantity: payload.data.quantity,
       price: payload.data.price,
-      collectionPoint: payload.data.collectionPoint,
-      itemCategory: payload.data.itemCategory
+      itemCategory: payload.data.itemCategory,
+      collectionPoint: payload.data.collectionPoint
+      
     }
   };
   
@@ -611,8 +612,9 @@ async function handleParcelSubmission(e) {
         itemDescription: formData.get('itemDescription')?.trim() || '',
         quantity: Number(formData.get('quantity')) || 1,
         price: Number(formData.get('price')) || 0,
-        collectionPoint: formData.get('collectionPoint') || '',
-        itemCategory: formData.get('itemCategory') || ''
+        itemCategory: formData.get('itemCategory') || '',
+        collectionPoint: formData.get('collectionPoint') || ''
+        
       },
       files: []
     };
@@ -1009,8 +1011,9 @@ function runInitialValidation() {
     { id: 'itemDescription', name: 'Item Description', type: 'description' },
     { id: 'quantity', name: 'Quantity', type: 'quantity' },
     { id: 'price', name: 'Price', type: 'price' },
-    { id: 'collectionPoint', name: 'Collection Point', type: 'select' },
-    { id: 'itemCategory', name: 'Item Category', type: 'select' }
+    { id: 'itemCategory', name: 'Item Category', type: 'select' },
+    { id: 'collectionPoint', name: 'Collection Point', type: 'select' }
+    
   ];
   
   // Validate each field
@@ -1168,8 +1171,9 @@ function setupRealTimeValidationListeners() {
     'itemDescription',
     'quantity',
     'price',
-    'collectionPoint',
-    'itemCategory'
+    'itemCategory',
+    'collectionPoint'
+    
   ];
   
   fields.forEach(fieldId => {
