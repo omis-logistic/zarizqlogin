@@ -1,13 +1,24 @@
 //scripts/app.js
 // ================= CONFIGURATION =================
 const CONFIG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbzpn61uwX3Jntbd3R_5iLX3jH2lhOVrvJQNmJBJjqV5ltdtdNNNWQBKFym_qyWgHJ0/exec',
-  PROXY_URL: 'https://script.google.com/macros/s/AKfycby1kjL2Cdu7LfVNLiCWU5jwqqlJxpCCeYNRQuf-1vp41uEud9D_bYdOmRXT98lQ616f/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbztoiK9OAM8071sUac23hwPAqhugJ0qHaGJfLFFj2tHRGyaP-U1dikoCIqro3QXvr5x/exec',
+  PROXY_URL: 'https://script.google.com/macros/s/AKfycbzr_P_AC4RbqcsMOBEnzt6Pmm9dazl0JcNsQotBuLvjK0r7absoTMwjCha6uapZFb5t/exec',
   SESSION_TIMEOUT: 3600,
   MAX_FILE_SIZE: 5 * 1024 * 1024,
   ALLOWED_FILE_TYPES: ['image/jpeg', 'image/png', 'application/pdf'],
   MAX_FILES: 3
 };
+
+// ================= HELPER: TRACKING NUMBER CLEANING =================
+function cleanTrackingNumber(rawTracking) {
+  if (!rawTracking) return '';
+  let cleaned = rawTracking.trim().toUpperCase();
+  const spxIndex = cleaned.indexOf('SPXLM');
+  if (spxIndex !== -1) {
+    cleaned = cleaned.substring(0, spxIndex);
+  }
+  return cleaned;
+}
 
 // ================= VIEWPORT MANAGEMENT =================
 function detectViewMode() {
@@ -489,9 +500,8 @@ async function tryFallbackSubmission(payload) {
       itemDescription: payload.data.itemDescription,
       quantity: payload.data.quantity,
       price: payload.data.price,
-      itemCategory: payload.data.itemCategory,
-      collectionPoint: payload.data.collectionPoint
-      
+      collectionPoint: payload.data.collectionPoint,
+      itemCategory: payload.data.itemCategory
     }
   };
   
@@ -601,20 +611,19 @@ async function handleParcelSubmission(e) {
       throw new Error('Session expired. Please login again.');
     }
 
-    // Build payload
+    // Build payload – now includes userID and cleaned tracking number
     const payload = {
       action: 'submitParcelDeclaration',
       data: {
-        userID: userData.userID,
-        trackingNumber: formData.get('trackingNumber')?.trim().toUpperCase() || '',
+        userID: userData.userID,                                   // <-- ADDED
+        trackingNumber: cleanTrackingNumber(formData.get('trackingNumber')), // <-- CLEANED
         nameOnParcel: formData.get('nameOnParcel')?.trim() || '',
         phoneNumber: userData.phone,
         itemDescription: formData.get('itemDescription')?.trim() || '',
         quantity: Number(formData.get('quantity')) || 1,
         price: Number(formData.get('price')) || 0,
-        itemCategory: formData.get('itemCategory') || '',
-        collectionPoint: formData.get('collectionPoint') || ''
-        
+        collectionPoint: formData.get('collectionPoint') || '',
+        itemCategory: formData.get('itemCategory') || ''
       },
       files: []
     };
@@ -803,11 +812,6 @@ function showSubmissionSuccess(trackingNumber) {
   });
   
   // REMOVED: Auto-close timeout - message stays until user closes it
-  // setTimeout(() => {
-  //   if (messageElement.style.display === 'block') {
-  //     messageElement.style.display = 'none';
-  //   }
-  // }, 8000);
 }
 
 // Show local recovery notice
@@ -1011,9 +1015,8 @@ function runInitialValidation() {
     { id: 'itemDescription', name: 'Item Description', type: 'description' },
     { id: 'quantity', name: 'Quantity', type: 'quantity' },
     { id: 'price', name: 'Price', type: 'price' },
-    { id: 'itemCategory', name: 'Item Category', type: 'select' },
-    { id: 'collectionPoint', name: 'Collection Point', type: 'select' }
-    
+    { id: 'collectionPoint', name: 'Collection Point', type: 'select' },
+    { id: 'itemCategory', name: 'Item Category', type: 'select' }
   ];
   
   // Validate each field
@@ -1171,9 +1174,8 @@ function setupRealTimeValidationListeners() {
     'itemDescription',
     'quantity',
     'price',
-    'itemCategory',
-    'collectionPoint'
-    
+    'collectionPoint',
+    'itemCategory'
   ];
   
   fields.forEach(fieldId => {
