@@ -604,6 +604,7 @@ async function handleParcelSubmission(e) {
     const payload = {
       action: 'submitParcelDeclaration',
       data: {
+        userID: userData.userID,
         trackingNumber: formData.get('trackingNumber')?.trim().toUpperCase() || '',
         nameOnParcel: formData.get('nameOnParcel')?.trim() || '',
         phoneNumber: userData.phone,
