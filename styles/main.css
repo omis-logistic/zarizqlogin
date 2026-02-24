@@ -146,6 +146,12 @@ select {
   background-size: 0.65em auto;
 }
 
+/* Style for dropdown options (desktop) */
+select option {
+  background-color: #333; /* dark background for the dropdown list */
+  color: #fff;            /* light text */
+}
+
 /* ======== PARCEL DECLARATION SPECIFIC ======== */
 .declaration-form .input-group {
   margin-bottom: 1.8rem;
