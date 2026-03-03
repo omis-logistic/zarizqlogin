@@ -1,8 +1,8 @@
-//scripts/app.js
+// scripts/app.js
 // ================= CONFIGURATION =================
 const CONFIG = {
   GAS_URL: 'https://script.google.com/macros/s/AKfycbyDZuvtBMhkwkI-Su6nXMLmm036-z5MvjBvRL1RJvqye_2UhQTV5j8yAdxrT10llNwa/exec',
-  PROXY_URL: 'https://script.google.com/macros/s/AKfycbzI2TVWTwVCt4WE0n6SbMVIPYrgUcURnyHcQuMAAFrEy-ijjeV2PUPf9AW3m86qm0XD/exec',
+  PROXY_URL: 'https://script.google.com/macros/s/AKfycbyFdDfrOno_Kb_SCxcdqrE6cPn4760YBlqPWo9bgtwGHjfoQPOdf0CDhiFTSTFf2-zH/exec',
   SESSION_TIMEOUT: 3600,
   MAX_FILE_SIZE: 5 * 1024 * 1024,
   ALLOWED_FILE_TYPES: ['image/jpeg', 'image/png', 'application/pdf'],
@@ -213,6 +213,11 @@ function resetForm() {
   }
 }
 
+// ================= NEW: TRACKING NUMBER TRIMMING HELPER =================
+function trimTrackingNumber(tracking) {
+  return tracking.replace(/SPXLM.*/i, '');
+}
+
 // ================= PARCEL DECLARATION HANDLER =================
 async function handleParcelSubmission(e) {
   e.preventDefault();
@@ -236,19 +241,28 @@ async function handleParcelSubmission(e) {
       }))
     );
 
-      const payload = {
-        trackingNumber: formData.get('trackingNumber').trim().toUpperCase(),
-        nameOnParcel: formData.get('nameOnParcel').trim(),
-        phone: document.getElementById('phone').value,
-        itemDescription: formData.get('itemDescription').trim(),
-        quantity: formData.get('quantity'),
-        price: formData.get('price'),
-        shippingPrice: formData.get('shippingPrice'), // New field
-        collectionPoint: formData.get('collectionPoint'),
-        itemCategory: formData.get('itemCategory'),
-        files: processedFiles,
-        remark: formData.get('remarks')?.trim() || ''
-      };
+    // Get logged-in user data
+    const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+    const userId = userData.userID || '';   // include user ID
+
+    // Trim tracking number
+    const rawTracking = formData.get('trackingNumber').trim().toUpperCase();
+    const trimmedTracking = trimTrackingNumber(rawTracking);
+
+    const payload = {
+      trackingNumber: trimmedTracking,          // trimmed
+      nameOnParcel: formData.get('nameOnParcel').trim(),
+      phone: document.getElementById('phone').value,
+      userId: userId,                            // added
+      itemDescription: formData.get('itemDescription').trim(),
+      quantity: formData.get('quantity'),
+      price: formData.get('price'),
+      shippingPrice: formData.get('shippingPrice'),
+      collectionPoint: formData.get('collectionPoint'),
+      itemCategory: formData.get('itemCategory'),
+      files: processedFiles,
+      remark: formData.get('remarks')?.trim() || ''
+    };
 
     await fetch(CONFIG.PROXY_URL, {
       method: 'POST',
