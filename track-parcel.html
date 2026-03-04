@@ -694,11 +694,11 @@
   // Helper function to get status icon
   function getStatusIcon(status) {
     const icons = {
-      'pending': '⏳',
-      'in transit': '🚚',
-      'delivered': '✅',
-      'customs hold': '⚠️',
-      '': '❓'
+      'pending': '',
+      'in transit': '',
+      'delivered': '',
+      'customs hold': '',
+      '': ''
     };
     return icons[status?.toLowerCase()] || '📦';
   }
