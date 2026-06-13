@@ -91,7 +91,7 @@
       width: 16px;
       height: 16px;
       animation: spin 0.8s linear infinite;
-      display: none; /* Hidden by default */
+      display: none;
       vertical-align: middle;
     }
 
@@ -173,7 +173,23 @@
 
   <script src="scripts/app.js"></script>
   <script>
-    // EXACT Mark 1 login implementation with improved spinner
+    // ========== NEW: Capture tracking parameter from URL ==========
+    (function captureTrackingParameter() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tracking = urlParams.get('tracking');
+      if (tracking && tracking.trim() !== '') {
+        // Store for later use after login
+        sessionStorage.setItem('pendingTracking', tracking.trim());
+        sessionStorage.setItem('pendingRedirect', 'parcel-declaration.html');
+        console.log('Tracking parameter captured:', tracking);
+        
+        // Clean the URL (remove ?tracking=xxx) without reloading the page
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+      }
+    })();
+
+    // ========== MODIFIED: Login handler with post‑login redirect logic ==========
     function handleLogin() {
       const btn = document.getElementById('loginBtn');
       const spinner = document.getElementById('loginSpinner');
@@ -203,7 +219,6 @@
       const callbackName = `jsonp_${Date.now()}`;
       const script = document.createElement('script');
       
-      // EXACTLY like Mark 1 - with crossorigin attribute
       script.crossOrigin = 'anonymous';
       script.src = `${CONFIG.GAS_URL}?action=processLogin&phone=${encodeURIComponent(identifier)}&password=${encodeURIComponent(password)}&callback=${callbackName}`;
 
@@ -217,26 +232,41 @@
             phone: response.phone,
             email: response.email,
             tempPassword: response.tempPassword,
-            userID: response.userID   // include user ID for later use
+            userID: response.userID
           }));
           localStorage.setItem('lastActivity', Date.now());
           
-          window.location.href = response.tempPassword 
-            ? 'password-reset.html?force=true'
+          // ========== NEW: Decide redirect URL based on pending tracking ==========
+          let redirectUrl = response.tempPassword 
+            ? 'password-reset.html?force=true' 
             : 'dashboard.html?fresh=1';
+          
+          const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+          const pendingTracking = sessionStorage.getItem('pendingTracking');
+          
+          if (pendingRedirect === 'parcel-declaration.html' && pendingTracking) {
+            // Store tracking for auto‑fill on the declaration page
+            sessionStorage.setItem('prefillTracking', pendingTracking);
+            redirectUrl = 'parcel-declaration.html';
+            // Clean up temporary storage
+            sessionStorage.removeItem('pendingTracking');
+            sessionStorage.removeItem('pendingRedirect');
+          }
+          
+          window.location.href = redirectUrl;
         } else {
           document.getElementById('password').value = '';
           showError(response.message || 'Authentication failed');
         }
         
-        // Cleanup - EXACTLY like Mark 1
+        // Cleanup
         if (script.parentNode) {
           document.body.removeChild(script);
         }
         delete window[callbackName];
       };
       
-      // Add error handler
+      // Error handler
       script.onerror = function() {
         resetLoginButton(btn, spinner, loginText, originalText);
         showError('Network error. Please try again.');
@@ -256,7 +286,7 @@
       textElement.textContent = originalText;
     }
 
-    // ======== EXACT Mark 1 ENTER KEY HANDLING ========
+    // Enter key handling
     document.getElementById('password').addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         handleLogin();
@@ -269,9 +299,8 @@
       }
     });
     
-    // ======== NEW: Auto-capitalize user ID ========
+    // Auto-capitalize user ID
     document.getElementById('phone').addEventListener('input', function(e) {
-      // Convert to uppercase as the user types (helps with user ID)
       this.value = this.value.toUpperCase();
     });
     
@@ -283,14 +312,14 @@
       safeRedirect('forgot-password.html');
     }
 
-    // EXACT Mark 1 validation function (updated to accept user ID)
+    // Validation function (accepts user ID)
     function validatePhone(phone) {
       const phoneRegex = /^(673\d{7,}|60\d{9,})$/;
       const userIDRegex = /^Z\d{4}$/i;
       return phoneRegex.test(phone) || userIDRegex.test(phone);
     }
 
-    // EXACT Mark 1 error display
+    // Error display
     function showError(message) {
       const errorDiv = document.getElementById('error-message');
       if (errorDiv) {
@@ -302,23 +331,19 @@
       }
     }
 
-    // EXACT Mark 1 redirect function
+    // Safe redirect function
     function safeRedirect(path) {
       try {
-        // Extract base path without query parameters
         const basePath = path.split('?')[0].split('#')[0];
-        
         const allowedPaths = [
           'login.html', 'register.html', 'dashboard.html',
           'forgot-password.html', 'password-reset.html',
           'my-info.html', 'parcel-declaration.html', 'track-parcel.html',
           'billing-info.html', 'invoice.html'
         ];
-        
         if (!allowedPaths.includes(basePath)) {
           throw new Error('Unauthorized path');
         }
-        
         window.location.href = path;
       } catch (error) {
         console.error('Redirect error:', error);
